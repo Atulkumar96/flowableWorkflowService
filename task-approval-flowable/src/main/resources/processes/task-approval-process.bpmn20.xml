@@ -5,15 +5,7 @@
              targetNamespace="http://flowable.org/processes">
 
     <process id="taskApprovalProcess" name="Task Approval Process" isExecutable="true">
-        <property id="process_maker" name="processMaker">
-            <extensionElements>
-                <flowable:property flowable:name="hasBusinessKey" flowable:value="true" />
-            </extensionElements>
-        </property>
         <startEvent id="startEvent" name="Start">
-            <extensionElements>
-                <flowable:executionListener event="start" expression="${processStartListener}" />
-            </extensionElements>
         </startEvent>
 
         <sequenceFlow id="flow1" sourceRef="startEvent" targetRef="draftTask"/>
