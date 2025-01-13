@@ -41,7 +41,7 @@ public class ProcessService {
             return "Process has completed";
         }
 
-        return "Active activities: " + String.join(", ", activeActivities);
+        return "Active activity: " + String.join(", ", activeActivities);
     }
 
     public List<ProcessInstanceDTO> getAllProcessInstancesWithActivities() {

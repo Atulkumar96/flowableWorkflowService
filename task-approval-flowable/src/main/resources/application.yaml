@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/task_approval_flowable
     username: postgres
-    password: root
+    password: postgres
     driver-class-name: org.postgresql.Driver
     jpa:
       hibernate:

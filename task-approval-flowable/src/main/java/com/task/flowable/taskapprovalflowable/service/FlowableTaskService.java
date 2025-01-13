@@ -32,7 +32,7 @@ public class FlowableTaskService {
 
         recordRepository.findById(record.getId())
             .ifPresent(recordObject -> {
-                throw new DuplicateRecordException("Duplicate record with ID: " + recordObject.getId() +" is already associated to process " + recordObject.getProcessInstanceId());
+                throw new DuplicateRecordException("Duplicate record with ID: " + recordObject.getId() +" is already associated to a process ID: " + recordObject.getProcessInstanceId());
             });
 
 
