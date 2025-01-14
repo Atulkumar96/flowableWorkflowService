@@ -54,12 +54,15 @@ public class WorkflowController {
         @PathVariable Long recordId,
         @RequestBody(required = false) WorkflowDTO workflowDTO) {
 
-        if (workflowDTO == null || isEmpty(workflowDTO)) {
-            Map<String, Object> response = startProcess(recordId);
+        // To start a new process with a record and a default processDefinitionKey
+        if (workflowDTO == null || isEmpty(workflowDTO) || !(workflowDTO.getRecordType() == null)) {
+            Map<String, Object> response = startProcess(recordId, workflowDTO);
             logger.info("Process started with process id {} and record id {}", response.get("processInstanceId"), response.get("recordId"));
-            return ResponseEntity.ok(response);
+            return ResponseEntity.status(HttpStatus.CREATED).build();
         }
 
+        // To start a new process with a record and a processDefinitionKey as per recordType
+        // To update the task status
         updateWorkflowStatus(recordId, workflowDTO);
         return ResponseEntity.ok().build();
     }
@@ -78,36 +81,70 @@ public class WorkflowController {
                 .singleResult();
 
             if (activeProcess != null) {
-                response.put("processInstanceId", activeProcess.getId());
-                response.put("status", "ACTIVE");
+//                response.put("processInstanceId", activeProcess.getId());
+//                response.put("status", "ACTIVE");
 
                 // Get process variables
                 Map<String, Object> variables = runtimeService.getVariables(activeProcess.getId());
-                if (variables.containsKey("state")) {
-                    response.put("state", variables.get("state"));
-                }
+
                 if (variables.containsKey("workflowState")) {
                     response.put("workflowState", variables.get("workflowState"));
+                }
+
+                //check if variables contains state and is not equal to null
+                if(variables.containsKey("state") && variables.get("state") != null){
+                    response.put("state", variables.get("state"));
+                }
+                else{
+                    if(variables.get("workflowState") == WorkflowDTO.WorkflowState.DRAFTED){
+                        response.put("state", WorkflowDTO.State.DRAFTED);
+                    }
+                    else if(variables.get("workflowState") == WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW){
+                        response.put("state", WorkflowDTO.State.DRAFTED);
+                    }
+                    else if(variables.get("workflowState") == WorkflowDTO.WorkflowState.REVIEW_REJECTED){
+                        response.put("state", WorkflowDTO.State.DRAFTED);
+                    }
+                    else if(variables.get("workflowState") == WorkflowDTO.WorkflowState.APPROVAL_REJECTED){
+                        response.put("state", WorkflowDTO.State.DRAFTED);
+                    }
+                    else if(variables.get("workflowState") == WorkflowDTO.WorkflowState.REVIEW_ACCEPTED){
+                        response.put("state", WorkflowDTO.State.REVIEWED);
+                    }
+                    else if(variables.get("workflowState") == WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED){
+                        response.put("state", WorkflowDTO.State.SIGNED);
+                    }
                 }
 
                 return ResponseEntity.ok(response);
             }
 
             // If no active process, check historic processes
-            HistoricProcessInstance historicProcess = historyService.createHistoricProcessInstanceQuery()
+            // Order by end time to get the latest process
+            // This is a business rule to prevent reprocessing of the same record
+            /*
+             HistoricProcessInstance historicProcess = historyService.createHistoricProcessInstanceQuery()
                 .processInstanceBusinessKey(businessKey)
                 .orderByProcessInstanceEndTime()
                 .desc()
                 .singleResult();
 
-            if (historicProcess != null) {
-                response.put("processInstanceId", historicProcess.getId());
-                response.put("status", "COMPLETED");
-                response.put("endTime", historicProcess.getEndTime());
+             */
+
+            List<HistoricProcessInstance> historicProcess = historyService.createHistoricProcessInstanceQuery()
+                    .processInstanceBusinessKey(businessKey)
+                    .orderByProcessInstanceEndTime()
+                    .desc()
+                    .list();
+
+            if (historicProcess != null && !historicProcess.isEmpty()) {
+                //response.put("processInstanceId", historicProcess.getId());
+                //response.put("status", "COMPLETED");
+                //response.put("endTime", historicProcess.getEndTime());
 
                 // Get historic variables
                 List<HistoricVariableInstance> historicVariables = historyService.createHistoricVariableInstanceQuery()
-                    .processInstanceId(historicProcess.getId())
+                    .processInstanceId(historicProcess.get(0).getId())
                     .list();
 
                 Map<String, Object> variables = historicVariables.stream()
@@ -139,7 +176,7 @@ public class WorkflowController {
 
 
     // Start a new process with a Record
-    private Map<String, Object> startProcess(Long recordId) {
+    private Map<String, Object> startProcess(Long recordId, WorkflowDTO workflowDTO) {
 
         String businessKey = String.valueOf(recordId);
 
@@ -167,6 +204,8 @@ public class WorkflowController {
             }
 
             // Handle multiple historic processes (data corruption scenario)
+            // This is a business rule to prevent reprocessing of the same record
+            /*
             if (historicProcesses.size() > 1) {
                 String processIds = historicProcesses.stream()
                     .map(HistoricProcessInstance::getId)
@@ -178,6 +217,8 @@ public class WorkflowController {
                     ". Please contact system administrator. Reference: " + processIds);
             }
 
+             */
+
             // Check for single active process
             if (!activeProcesses.isEmpty()) {
                 ProcessInstance existingProcess = activeProcesses.get(0);
@@ -185,17 +226,27 @@ public class WorkflowController {
                     " is already associated to active process " + existingProcess.getProcessInstanceId());
             }
 
-            // Check for single historic process
+            // Check for single historic process - prevent reprocessing with same record ID
+            // This is a business rule to prevent reprocessing of the same record
+            /*
             if (!historicProcesses.isEmpty()) {
                 HistoricProcessInstance historicProcess = historicProcesses.get(0);
                 throw new DuplicateRecordException("Record with ID: " + recordId +
                     " was previously processed in historic process " + historicProcess.getId());
             }
+            */
 
             // Proceed with process creation if no duplicates found
             Map<String, Object> variables = new HashMap<>();
             variables.put("recordId", recordId);
-            variables.put("workflowState", WorkflowDTO.WorkflowState.INIT);
+            variables.put("workflowState", WorkflowDTO.WorkflowState.DRAFTED);
+            variables.put("state", WorkflowDTO.State.DRAFTED);
+            // if workflowDTO is not null & workflowDTO has recordType, set it as a process variable
+            if (workflowDTO != null && workflowDTO.getRecordType() != null) {
+                variables.put("recordType", workflowDTO.getRecordType());
+            }
+
+            //TODO: On the basis of recordType, set the processDefinitionKey
 
             ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(
                 "taskApprovalProcess",
@@ -215,8 +266,8 @@ public class WorkflowController {
                 ". Please contact system administrator.", e);
         } catch (Exception e) {
             logger.error("Unexpected error while processing business key {}: {}", businessKey, e.getMessage(), e);
-            throw new ProcessingException("Unexpected error processing record ID: " + recordId +
-                ". Please contact system administrator.", e);
+            throw new ProcessingException("A 'Review and Approval cycle process' with record ID: " + recordId +
+                " is already in an active intermediate state.", e);
         }
     }
 
@@ -225,15 +276,17 @@ public class WorkflowController {
 
         String businessKey = String.valueOf(recordId);
 
+        // Check if a process instance exists for the record
         ProcessInstance existingProcess = runtimeService.createProcessInstanceQuery()
             .processInstanceBusinessKey(businessKey)
             .singleResult();
 
         Optional.ofNullable(existingProcess).orElseThrow(() -> new RecordNotFoundException("Record not found: " + recordId));
-
+        /*
         try {
             // Check if the workflow state and state are valid
             WorkflowDTO.WorkflowState workflowState = workflowDTO.getWorkflowState();
+
             WorkflowDTO.State state = workflowDTO.getState();
 
             if (workflowState == WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW
@@ -250,7 +303,30 @@ public class WorkflowController {
             } else {
                 throw new InvalidStatusException("Please provide a valid state");
             }
-        } catch (Exception e) {
+        }
+
+         */
+        try {
+            // Check if the workflow state and state are valid
+            WorkflowDTO.WorkflowState workflowState = workflowDTO.getWorkflowState();
+            //WorkflowDTO.State state = workflowDTO.getState();
+
+            if (workflowState == WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW) {
+                updateWorkflowStatus(recordId, workflowDTO, DRAFT_TASK);
+            } else if ((workflowState == WorkflowDTO.WorkflowState.REVIEW_ACCEPTED ||
+                    workflowState == WorkflowDTO.WorkflowState.REVIEW_REJECTED)
+                    ) {
+                updateWorkflowStatus(recordId, workflowDTO, REVIEW_TASK);
+            } else if ((workflowState == WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED ||
+                    workflowState == WorkflowDTO.WorkflowState.APPROVAL_REJECTED)
+                    ) {
+                updateWorkflowStatus(recordId, workflowDTO, APPROVE_TASK);
+            } else {
+                throw new InvalidStatusException("Please provide a valid state");
+            }
+        }
+
+        catch (Exception e) {
             throw new InvalidStatusException("Invalid state: " + e.getMessage());
         }
 
