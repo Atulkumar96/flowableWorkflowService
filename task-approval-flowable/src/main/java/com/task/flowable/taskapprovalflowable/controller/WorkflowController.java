@@ -48,13 +48,28 @@ public class WorkflowController {
     private final TaskService taskService;
     private final HistoryService historyService;
 
+    /**
+     * Start or update the status of a record
+     * @param recordId Long
+     * @param workflowDTO WorkflowDTO
+     * @return ResponseEntity<Map<String, Object>>
+     *     * @throws RecordNotFoundException
+     *     * @throws DuplicateRecordException
+     *     * @throws ProcessingException
+     *     * @throws InvalidStatusException
+     *     * @throws DataCorruptionException
+     */
 
     @PostMapping("/{recordId}")
-    public ResponseEntity<Map<String, Object>> updateRecordStatus(
+    public ResponseEntity<Map<String, Object>> startOrUpdateRecordState(
         @PathVariable Long recordId,
         @RequestBody(required = false) WorkflowDTO workflowDTO) {
 
-        // To start a new process with a record and a default processDefinitionKey
+        /**
+         * To start a new process with a record
+         * If the workflowDTO is null or empty or the workflow state is DRAFTED and state is DRAFTED and recordType is not null
+         */
+
         if (workflowDTO == null || isEmpty(workflowDTO) ||
                 ((workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.DRAFTED) && (workflowDTO.getState() == WorkflowDTO.State.DRAFTED)
             && !(workflowDTO.getRecordType() == null))) {
@@ -63,9 +78,11 @@ public class WorkflowController {
             return ResponseEntity.status(HttpStatus.CREATED).build();
         }
 
-        // To start a new process with a record and a processDefinitionKey as per recordType
-        // To update the task status
-        updateWorkflowStatus(recordId, workflowDTO);
+        /**
+         * To update the task status
+         * If the workflowDTO is not null and the workflow state is not DRAFTED and the state is not DRAFTED
+         */
+        updateWorkflowState(recordId, workflowDTO);
         return ResponseEntity.ok().build();
     }
 
@@ -274,7 +291,7 @@ public class WorkflowController {
     }
 
     // Update the task status and complete the associated process task
-    private void updateWorkflowStatus(Long recordId, WorkflowDTO workflowDTO) {
+    private void updateWorkflowState(Long recordId, WorkflowDTO workflowDTO) {
 
         String businessKey = String.valueOf(recordId);
 
@@ -314,15 +331,15 @@ public class WorkflowController {
             //WorkflowDTO.State state = workflowDTO.getState();
 
             if (workflowState == WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW) {
-                updateWorkflowStatus(recordId, workflowDTO, DRAFT_TASK);
+                updateWorkflowState(recordId, workflowDTO, DRAFT_TASK);
             } else if ((workflowState == WorkflowDTO.WorkflowState.REVIEW_ACCEPTED ||
                     workflowState == WorkflowDTO.WorkflowState.REVIEW_REJECTED)
                     ) {
-                updateWorkflowStatus(recordId, workflowDTO, REVIEW_TASK);
+                updateWorkflowState(recordId, workflowDTO, REVIEW_TASK);
             } else if ((workflowState == WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED ||
                     workflowState == WorkflowDTO.WorkflowState.APPROVAL_REJECTED)
                     ) {
-                updateWorkflowStatus(recordId, workflowDTO, APPROVE_TASK);
+                updateWorkflowState(recordId, workflowDTO, APPROVE_TASK);
             } else {
                 throw new InvalidStatusException("Please provide a valid state");
             }
@@ -334,7 +351,7 @@ public class WorkflowController {
 
     }
 
-    private void updateWorkflowStatus(Long recordId, WorkflowDTO workflowDTO, String taskDefinitionKey) {
+    private void updateWorkflowState(Long recordId, WorkflowDTO workflowDTO, String taskDefinitionKey) {
 
         boolean isApproved = workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.REVIEW_ACCEPTED
             || workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED;

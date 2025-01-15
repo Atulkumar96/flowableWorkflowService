@@ -22,21 +22,21 @@ class WorkflowControllerTest {
     private WorkflowController workflowController;
 
     @Test
-    @Deployment(resources = { "processes/task-approval-process.bpmn20.xml" })
-    void processFlowTest() {
+    //@Deployment(resources = { "processes/task-approval-process.bpmn20.xml" })
+    void testProcessFlowInWorkflowController() {
 
         // 1. Start the process with the given record id and no variables
-        var responseStatus = workflowController.updateRecordStatus(8982L,null);
+        var responseStatus = workflowController.startOrUpdateRecordState(8982L,null);
 
         //Check if the response status is 201 CREATED
-        assertEquals(201, responseStatus.getStatusCode().value());
+        assertEquals(201, responseStatus.getStatusCode().value(), "The response status must be 201 CREATED");
 
         // Get the current state of the record
         var response = workflowController.getRecordState(8982L);
 
         // The expected workflow state and the document state must be DRAFTED
-        assertEquals(String.valueOf("DRAFTED"), String.valueOf(response.getBody().get("workflowState")));
-        assertEquals(String.valueOf("DRAFTED"), String.valueOf(response.getBody().get("state")));
+        assertEquals(String.valueOf("DRAFTED"), String.valueOf(response.getBody().get("workflowState")), "The workflow state must be DRAFTED");
+        assertEquals(String.valueOf("DRAFTED"), String.valueOf(response.getBody().get("state")), "The document state must be DRAFTED");
 
         // 2. Update the record state to DOCUMENT_READY_FOR_REVIEW
         WorkflowDTO workflowDTO = WorkflowDTO.builder()
@@ -44,17 +44,17 @@ class WorkflowControllerTest {
                 .state(WorkflowDTO.State.DRAFTED)
                 .build();
 
-        responseStatus = workflowController.updateRecordStatus(8982L,workflowDTO);
+        responseStatus = workflowController.startOrUpdateRecordState(8982L,workflowDTO);
 
         // Check if the response status is 200 OK
-        assertEquals(200, responseStatus.getStatusCode().value());
+        assertEquals(200, responseStatus.getStatusCode().value(), "The response status must be 200 OK");
 
         // Get the current state of the record
         response = workflowController.getRecordState(8982L);
 
         // The expected workflow state and the document state must be DOCUMENT_READY_FOR_REVIEW and DRAFTED
-        assertEquals(String.valueOf("DOCUMENT_READY_FOR_REVIEW"), String.valueOf(response.getBody().get("workflowState")));
-        assertEquals(String.valueOf("DRAFTED"), String.valueOf(response.getBody().get("state")));
+        assertEquals(String.valueOf("DOCUMENT_READY_FOR_REVIEW"), String.valueOf(response.getBody().get("workflowState")), "The workflow state must be DOCUMENT_READY_FOR_REVIEW");
+        assertEquals(String.valueOf("DRAFTED"), String.valueOf(response.getBody().get("state")), "The document state must be DRAFTED");
 
         // 3. Update the record state to REVIEW_ACCEPTED
         workflowDTO = WorkflowDTO.builder()
@@ -62,10 +62,10 @@ class WorkflowControllerTest {
                 .state(WorkflowDTO.State.DRAFTED)
                 .build();
 
-        responseStatus = workflowController.updateRecordStatus(8982L,workflowDTO);
+        responseStatus = workflowController.startOrUpdateRecordState(8982L,workflowDTO);
 
         // Check if the response status is 200 OK
-        assertEquals(200, responseStatus.getStatusCode().value());
+        assertEquals(200, responseStatus.getStatusCode().value(), "The response status must be 200 OK");
 
         // Get the current state of the record
         response = workflowController.getRecordState(8982L);
@@ -80,17 +80,17 @@ class WorkflowControllerTest {
                 .state(WorkflowDTO.State.REVIEWED)
                 .build();
 
-        responseStatus = workflowController.updateRecordStatus(8982L,workflowDTO);
+        responseStatus = workflowController.startOrUpdateRecordState(8982L,workflowDTO);
 
         // Check if the response status is 200 OK
-        assertEquals(200, responseStatus.getStatusCode().value());
+        assertEquals(200, responseStatus.getStatusCode().value(), "The response status must be 200 OK");
 
         // Get the current state of the record
         response = workflowController.getRecordState(8982L);
 
         // The expected workflow state and the document state must be APPROVAL_ACCEPTED and SIGNED
-        assertEquals(String.valueOf("APPROVAL_ACCEPTED"), String.valueOf(response.getBody().get("workflowState")));
-        assertEquals(String.valueOf("SIGNED"), String.valueOf(response.getBody().get("state")));
+        assertEquals(String.valueOf("APPROVAL_ACCEPTED"), String.valueOf(response.getBody().get("workflowState")), "The workflow state must be APPROVAL_ACCEPTED");
+        assertEquals(String.valueOf("SIGNED"), String.valueOf(response.getBody().get("state")), "The document state must be SIGNED");
     }
 
 }
