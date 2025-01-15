@@ -55,7 +55,9 @@ public class WorkflowController {
         @RequestBody(required = false) WorkflowDTO workflowDTO) {
 
         // To start a new process with a record and a default processDefinitionKey
-        if (workflowDTO == null || isEmpty(workflowDTO) || !(workflowDTO.getRecordType() == null)) {
+        if (workflowDTO == null || isEmpty(workflowDTO) ||
+                ((workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.DRAFTED) && (workflowDTO.getState() == WorkflowDTO.State.DRAFTED)
+            && !(workflowDTO.getRecordType() == null))) {
             Map<String, Object> response = startProcess(recordId, workflowDTO);
             logger.info("Process started with process id {} and record id {}", response.get("processInstanceId"), response.get("recordId"));
             return ResponseEntity.status(HttpStatus.CREATED).build();
@@ -281,7 +283,7 @@ public class WorkflowController {
             .processInstanceBusinessKey(businessKey)
             .singleResult();
 
-        Optional.ofNullable(existingProcess).orElseThrow(() -> new RecordNotFoundException("Record not found: " + recordId));
+        Optional.ofNullable(existingProcess).orElseThrow(() -> new RecordNotFoundException("Review and Approval cycle- Record not found: " + recordId));
         /*
         try {
             // Check if the workflow state and state are valid
@@ -307,7 +309,7 @@ public class WorkflowController {
 
          */
         try {
-            // Check if the workflow state and state are valid
+            // Fetch the updating workflow state
             WorkflowDTO.WorkflowState workflowState = workflowDTO.getWorkflowState();
             //WorkflowDTO.State state = workflowDTO.getState();
 
@@ -339,12 +341,15 @@ public class WorkflowController {
 
         WorkflowDTO.State state = workflowDTO.getState();
 
-        if(workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED) {
+        if (workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED) {
             state = WorkflowDTO.State.SIGNED;
-        }if(workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.REVIEW_ACCEPTED) {
+        }
+        if (workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.REVIEW_ACCEPTED) {
             state = WorkflowDTO.State.REVIEWED;
-        } else if(workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.REVIEW_REJECTED
-            || workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.APPROVAL_REJECTED) {
+        }
+        else if (workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW
+                || workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.REVIEW_REJECTED
+                || workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.APPROVAL_REJECTED) {
             state = WorkflowDTO.State.DRAFTED;
         }
 
