@@ -49,7 +49,8 @@ public class WorkflowController {
     private final HistoryService historyService;
 
     /**
-     * Start or update the status of a record
+     * Start or update the state of a record
+
      * @param recordId Long
      * @param workflowDTO WorkflowDTO
      * @return ResponseEntity<Map<String, Object>>
@@ -67,12 +68,10 @@ public class WorkflowController {
 
         /**
          * To start a new process with a record
-         * If the workflowDTO is null or empty or the workflow state is DRAFTED and state is DRAFTED and recordType is not null
+         * If the workflowDTO is null or empty, or, the workflow state is DRAFTED and recordType is not null
          */
 
-        if (workflowDTO == null || isEmpty(workflowDTO) ||
-                ((workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.DRAFTED) && (workflowDTO.getState() == WorkflowDTO.State.DRAFTED)
-            && !(workflowDTO.getRecordType() == null))) {
+        if (workflowDTO == null || isEmpty(workflowDTO) || ((workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.DRAFTED) && !(workflowDTO.getRecordType() == null))) {
             Map<String, Object> response = startProcess(recordId, workflowDTO);
             logger.info("Process started with process id {} and record id {}", response.get("processInstanceId"), response.get("recordId"));
             return ResponseEntity.status(HttpStatus.CREATED).build();
@@ -80,11 +79,20 @@ public class WorkflowController {
 
         /**
          * To update the task status
-         * If the workflowDTO is not null and the workflow state is not DRAFTED and the state is not DRAFTED
+         * If the workflowDTO is not null and the workflow state is not DRAFTED
          */
+
         updateWorkflowState(recordId, workflowDTO);
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * Get the state of a record
+
+     * @param recordId Long
+     * @return ResponseEntity<Map<String, Object>>
+     * @throws RecordNotFoundException
+     */
 
     @GetMapping("/{recordId}")
     public ResponseEntity<Map<String, Object>> getRecordState(
@@ -100,8 +108,6 @@ public class WorkflowController {
                 .singleResult();
 
             if (activeProcess != null) {
-//                response.put("processInstanceId", activeProcess.getId());
-//                response.put("status", "ACTIVE");
 
                 // Get process variables
                 Map<String, Object> variables = runtimeService.getVariables(activeProcess.getId());
@@ -115,6 +121,7 @@ public class WorkflowController {
                     response.put("state", variables.get("state"));
                 }
                 else{
+                    // if state is null or incorrect, set the state based on the workflowState
                     if(variables.get("workflowState") == WorkflowDTO.WorkflowState.DRAFTED){
                         response.put("state", WorkflowDTO.State.DRAFTED);
                     }
@@ -265,7 +272,12 @@ public class WorkflowController {
                 variables.put("recordType", workflowDTO.getRecordType());
             }
 
+
+            //For now, we are using a single process definition key
             //TODO: On the basis of recordType, set the processDefinitionKey
+            // fetch process definition from workflow matrix based on the record type
+            // ((e.g. nerc_policy_procedure_rsaw - review_and_approval_cycle))
+
 
             ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(
                 "taskApprovalProcess",
@@ -286,7 +298,7 @@ public class WorkflowController {
         } catch (Exception e) {
             logger.error("Unexpected error while processing business key {}: {}", businessKey, e.getMessage(), e);
             throw new ProcessingException("A 'Review and Approval cycle process' with record ID: " + recordId +
-                " is already in an active intermediate state.", e);
+                " is already in an active intermediate state. Please complete the process before starting a new one.", e);
         }
     }
 
@@ -301,30 +313,7 @@ public class WorkflowController {
             .singleResult();
 
         Optional.ofNullable(existingProcess).orElseThrow(() -> new RecordNotFoundException("Review and Approval cycle- Record not found: " + recordId));
-        /*
-        try {
-            // Check if the workflow state and state are valid
-            WorkflowDTO.WorkflowState workflowState = workflowDTO.getWorkflowState();
 
-            WorkflowDTO.State state = workflowDTO.getState();
-
-            if (workflowState == WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW
-                && state == WorkflowDTO.State.DRAFTED) {
-                updateWorkflowStatus(recordId, workflowDTO, DRAFT_TASK);
-            } else if ((workflowState == WorkflowDTO.WorkflowState.REVIEW_ACCEPTED ||
-                workflowState == WorkflowDTO.WorkflowState.REVIEW_REJECTED)
-                && state == WorkflowDTO.State.DRAFTED) {
-                updateWorkflowStatus(recordId, workflowDTO, REVIEW_TASK);
-            } else if ((workflowState == WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED ||
-                workflowState == WorkflowDTO.WorkflowState.APPROVAL_REJECTED)
-                && state == WorkflowDTO.State.REVIEWED) {
-                updateWorkflowStatus(recordId, workflowDTO, APPROVE_TASK);
-            } else {
-                throw new InvalidStatusException("Please provide a valid state");
-            }
-        }
-
-         */
         try {
             // Fetch the updating workflow state
             WorkflowDTO.WorkflowState workflowState = workflowDTO.getWorkflowState();
@@ -346,7 +335,7 @@ public class WorkflowController {
         }
 
         catch (Exception e) {
-            throw new InvalidStatusException("Invalid state: " + e.getMessage());
+            throw new InvalidStatusException("");
         }
 
     }
@@ -370,6 +359,9 @@ public class WorkflowController {
             state = WorkflowDTO.State.DRAFTED;
         }
 
+            /**
+            * Fetch the current task from the process engine
+            */
         org.flowable.task.api.Task task = getTask(recordId, taskDefinitionKey);
 
         Optional.ofNullable(task).orElseThrow(()-> new InvalidStatusException("Please provide a valid state"));
