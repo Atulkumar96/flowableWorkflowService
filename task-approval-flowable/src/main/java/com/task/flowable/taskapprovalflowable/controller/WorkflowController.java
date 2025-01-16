@@ -40,10 +40,6 @@ import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 public class WorkflowController {
     private static final Logger logger = LoggerFactory.getLogger(WorkflowController.class);
 
-    private final static String DRAFT_TASK = "draftTask";
-    private final static String REVIEW_TASK = "reviewTask";
-    private final static String APPROVE_TASK = "approveTask";
-
     private final RuntimeService runtimeService;
     private final TaskService taskService;
     private final HistoryService historyService;
@@ -307,80 +303,40 @@ public class WorkflowController {
 
         String businessKey = String.valueOf(recordId);
 
-        // Check if a process instance exists for the record
         ProcessInstance existingProcess = runtimeService.createProcessInstanceQuery()
             .processInstanceBusinessKey(businessKey)
             .singleResult();
 
-        Optional.ofNullable(existingProcess).orElseThrow(() -> new RecordNotFoundException("Review and Approval cycle- Record not found: " + recordId));
+        Optional.ofNullable(existingProcess)
+            .orElseThrow(() -> new RecordNotFoundException("Record not found: " + recordId));
 
-        try {
-            // Fetch the updating workflow state
-            WorkflowDTO.WorkflowState workflowState = workflowDTO.getWorkflowState();
-            //WorkflowDTO.State state = workflowDTO.getState();
+        // Get current task
+        org.flowable.task.api.Task currentTask = taskService.createTaskQuery()
+            .processInstanceId(existingProcess.getId())
+            .singleResult();
 
-            if (workflowState == WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW) {
-                updateWorkflowState(recordId, workflowDTO, DRAFT_TASK);
-            } else if ((workflowState == WorkflowDTO.WorkflowState.REVIEW_ACCEPTED ||
-                    workflowState == WorkflowDTO.WorkflowState.REVIEW_REJECTED)
-                    ) {
-                updateWorkflowState(recordId, workflowDTO, REVIEW_TASK);
-            } else if ((workflowState == WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED ||
-                    workflowState == WorkflowDTO.WorkflowState.APPROVAL_REJECTED)
-                    ) {
-                updateWorkflowState(recordId, workflowDTO, APPROVE_TASK);
-            } else {
-                throw new InvalidStatusException("Please provide a valid state");
-            }
+        if (currentTask == null) {
+            throw new InvalidStatusException("No active task found for record: " + recordId);
         }
 
-        catch (Exception e) {
-            throw new InvalidStatusException("");
-        }
-
-    }
-
-    private void updateWorkflowState(Long recordId, WorkflowDTO workflowDTO, String taskDefinitionKey) {
-
-        boolean isApproved = workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.REVIEW_ACCEPTED
-            || workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED;
-
-        WorkflowDTO.State state = workflowDTO.getState();
-
-        if (workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED) {
-            state = WorkflowDTO.State.SIGNED;
-        }
-        if (workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.REVIEW_ACCEPTED) {
-            state = WorkflowDTO.State.REVIEWED;
-        }
-        else if (workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW
-                || workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.REVIEW_REJECTED
-                || workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.APPROVAL_REJECTED) {
-            state = WorkflowDTO.State.DRAFTED;
-        }
-
-            /**
-            * Fetch the current task from the process engine
-            */
-        org.flowable.task.api.Task task = getTask(recordId, taskDefinitionKey);
-
-        Optional.ofNullable(task).orElseThrow(()-> new InvalidStatusException("Please provide a valid state"));
-
+        // Prepare variables for the workflow
         Map<String, Object> variables = new HashMap<>();
-
-        variables.put("state", state);
+        variables.put("state", workflowDTO.getState());
         variables.put("workflowState", workflowDTO.getWorkflowState());
         variables.put("recordId", recordId);
-        variables.put("approved", isApproved);
+        if (workflowDTO.getRecordType() != null) {
+            variables.put("recordType", workflowDTO.getRecordType());
+        }
+        variables.put("approved", isApproved(workflowDTO.getWorkflowState()));
 
-        taskService.complete(task.getId(), variables);
+        // Complete the current task with variables
+        taskService.complete(currentTask.getId(), variables);
+
     }
 
-    private org.flowable.task.api.Task getTask(Long recordId, String taskDefinitionKey) {
-        return taskService.createTaskQuery()
-            .taskDefinitionKey(taskDefinitionKey)
-            .processVariableValueEquals("recordId", recordId)
-            .singleResult();
+    private boolean isApproved(WorkflowDTO.WorkflowState workflowState) {
+        return workflowState == WorkflowDTO.WorkflowState.REVIEW_ACCEPTED ||
+            workflowState == WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED;
     }
 
 }
