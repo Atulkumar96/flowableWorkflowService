@@ -44,6 +44,13 @@ public class WorkflowController {
     private final TaskService taskService;
     private final HistoryService historyService;
 
+    private final static HashMap<String,String> PROCESS_MATRIX_MAP = new HashMap<>();
+
+    static {
+        //for recordType r1
+        PROCESS_MATRIX_MAP.put("r1","task-approval-process.bpmn20-r1.xml");
+    }
+
     /**
      * Start or update the state of a record
 
@@ -264,8 +271,10 @@ public class WorkflowController {
             variables.put("workflowState", WorkflowDTO.WorkflowState.DRAFTED);
             variables.put("state", WorkflowDTO.State.DRAFTED);
             // if workflowDTO is not null & workflowDTO has recordType, set it as a process variable
+            String processDefinitionKey = "taskApprovalProcess";
             if (workflowDTO != null && workflowDTO.getRecordType() != null) {
                 variables.put("recordType", workflowDTO.getRecordType());
+                processDefinitionKey = PROCESS_MATRIX_MAP.getOrDefault(workflowDTO.getRecordType(),"taskApprovalProcess");
             }
 
 
@@ -276,7 +285,7 @@ public class WorkflowController {
 
 
             ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(
-                "taskApprovalProcess",
+                processDefinitionKey,
                 businessKey,
                 variables
             );
