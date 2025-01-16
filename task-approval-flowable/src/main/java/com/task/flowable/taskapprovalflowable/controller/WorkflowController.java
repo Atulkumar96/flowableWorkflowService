@@ -193,7 +193,7 @@ public class WorkflowController {
             return ResponseEntity.notFound().build();
 
         } catch (FlowableException e) {
-            logger.error("Error retrieving process state for record {}: {}", recordId, e.getMessage(), e);
+            logger.error("Error retrieving process state for record {} : {}", recordId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Collections.singletonMap("error",
                     "Error retrieving process state. Please contact administrator."));
