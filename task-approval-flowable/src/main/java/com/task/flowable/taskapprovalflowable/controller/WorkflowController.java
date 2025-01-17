@@ -297,7 +297,6 @@ public class WorkflowController {
 
         // Prepare variables for the workflow
         Map<String, Object> variables = new HashMap<>();
-        variables.put("state", workflowDTO.getState());
         variables.put("workflowState", workflowDTO.getWorkflowState());
         variables.put("recordId", recordId);
         if (workflowDTO.getRecordType() != null) {

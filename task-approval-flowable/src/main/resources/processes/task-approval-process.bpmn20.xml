@@ -19,13 +19,18 @@
         <exclusiveGateway id="validateDraftState" name="Validate Draft State"/>
 
         <sequenceFlow id="flow2a" sourceRef="validateDraftState" targetRef="updateStateToReadyForReview">
+            <extensionElements>
+                <flowable:executionListener expression="${execution.setVariable('state', 'DRAFTED')}" event="take" />
+            </extensionElements>
             <conditionExpression xsi:type="tFormalExpression">
-                <!--${workflowState == 'DOCUMENT_READY_FOR_REVIEW' &amp;&amp; state == 'DRAFTED'}-->
                 ${workflowState == 'DOCUMENT_READY_FOR_REVIEW'}
             </conditionExpression>
         </sequenceFlow>
 
         <sequenceFlow id="flow2b" sourceRef="validateDraftState" targetRef="handleDraftError">
+            <extensionElements>
+                <flowable:executionListener expression="${execution.setVariable('state', 'DRAFTED')}" event="take" />
+            </extensionElements>
             <conditionExpression xsi:type="tFormalExpression">
                 ${workflowState != 'DOCUMENT_READY_FOR_REVIEW'}
             </conditionExpression>
@@ -75,11 +80,17 @@
         <exclusiveGateway id="reviewDecision" name="Review Decision"/>
 
         <sequenceFlow id="flow6" sourceRef="reviewDecision" targetRef="updateStateToReviewAccepted">
-            <conditionExpression xsi:type="tFormalExpression">${approved}</conditionExpression>
+            <extensionElements>
+                <flowable:executionListener expression="${execution.setVariable('state', 'REVIEWED')}" event="take" />
+            </extensionElements>
+            <conditionExpression xsi:type="tFormalExpression">${workflowState == 'REVIEW_ACCEPTED'}</conditionExpression>
         </sequenceFlow>
 
         <sequenceFlow id="flow7" sourceRef="reviewDecision" targetRef="updateStateToReviewRejected">
-            <conditionExpression xsi:type="tFormalExpression">${!approved}</conditionExpression>
+            <extensionElements>
+                <flowable:executionListener expression="${execution.setVariable('state', 'DRAFTED')}" event="take" />
+            </extensionElements>
+            <conditionExpression xsi:type="tFormalExpression">${workflowState == 'REVIEW_REJECTED'}</conditionExpression>
         </sequenceFlow>
 
         <serviceTask id="updateStateToReviewAccepted" name="Update State to Review Accepted"
@@ -131,11 +142,17 @@
         <exclusiveGateway id="approvalDecision" name="Approval Decision"/>
 
         <sequenceFlow id="flow13" sourceRef="approvalDecision" targetRef="updateStateToApprovalAccepted">
-            <conditionExpression xsi:type="tFormalExpression">${approved}</conditionExpression>
+            <extensionElements>
+                <flowable:executionListener expression="${execution.setVariable('state', 'SIGNED')}" event="take" />
+            </extensionElements>
+            <conditionExpression xsi:type="tFormalExpression">${workflowState == 'APPROVAL_ACCEPTED'}</conditionExpression>
         </sequenceFlow>
 
         <sequenceFlow id="flow14" sourceRef="approvalDecision" targetRef="updateStateToApprovalRejected">
-            <conditionExpression xsi:type="tFormalExpression">${!approved}</conditionExpression>
+            <extensionElements>
+                <flowable:executionListener expression="${execution.setVariable('state', 'DRAFTED')}" event="take" />
+            </extensionElements>
+            <conditionExpression xsi:type="tFormalExpression">${workflowState == 'APPROVAL_REJECTED'}</conditionExpression>
         </sequenceFlow>
 
         <serviceTask id="updateStateToApprovalAccepted" name="Update State to Approval Accepted"

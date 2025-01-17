@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+//TODO : Can be deleted - as all logics moved to xml
 @Component
 public class StateUpdateDelegate implements JavaDelegate {
 
@@ -22,25 +23,8 @@ public class StateUpdateDelegate implements JavaDelegate {
         // Log the current state and record ID for debugging
         logger.info("Updating record state from '{}' to '{}' for record {}", currentState, workflowState, recordId);
 
-        // Your state update logic, just as an example
-        String updatedState = determineUpdatedState(workflowState, currentState);
-
-        // Set the updated state variable
-        execution.setVariable("state", updatedState);  // This updates the 'state' process variable
-        logger.info("Updated state to '{}' for record {}", updatedState, recordId);
 
 
     }
 
-    private String determineUpdatedState(String workflowState, String currentState) {
-        if ("APPROVAL_ACCEPTED".equals(workflowState)) {
-            return "SIGNED";
-        } else if ("REVIEW_ACCEPTED".equals(workflowState)) {
-            return "REVIEWED";
-        } else if ("REVIEW_REJECTED".equals(workflowState) || "APPROVAL_REJECTED".equals(workflowState)) {
-            return "DRAFTED";
-        }
-        // Return current state if no change is needed
-        return "DRAFTED";
-    }
 }
