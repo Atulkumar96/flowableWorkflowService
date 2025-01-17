@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-//TODO : Can be deleted - as all logics moved to xml
+//TODO : Can be deleted - as all logics moved to xml, Just using for Logging
 @Component
 public class StateUpdateDelegate implements JavaDelegate {
 

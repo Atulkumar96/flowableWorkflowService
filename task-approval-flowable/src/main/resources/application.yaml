@@ -16,3 +16,5 @@ spring:
           format_sql: true
     cache:
       type: simple
+
+default-process-definition-key: review_and_approval_cycle

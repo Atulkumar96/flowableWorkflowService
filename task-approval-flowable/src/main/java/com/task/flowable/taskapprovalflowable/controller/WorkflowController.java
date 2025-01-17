@@ -16,6 +16,7 @@ import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.variable.api.history.HistoricVariableInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,6 +44,9 @@ public class WorkflowController {
     private final RuntimeService runtimeService;
     private final TaskService taskService;
     private final HistoryService historyService;
+
+    @Value("${default-process-definition-key}")
+    private String defaultProcessDefinitionKey;
 
     private final static HashMap<String,String> PROCESS_MATRIX_MAP = new HashMap<>();
 
@@ -241,7 +245,7 @@ public class WorkflowController {
             variables.put("state", WorkflowDTO.State.DRAFTED);
 
             // Default process definition key
-            String processDefinitionKey = "taskApprovalProcess";
+            String processDefinitionKey = defaultProcessDefinitionKey;
 
             // If workflowDTO is not null & workflowDTO has recordType, set it as a process variable
             // According to the recordType, set the processDefinitionKey
