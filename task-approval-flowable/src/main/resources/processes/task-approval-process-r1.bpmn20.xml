@@ -4,7 +4,7 @@
              xmlns:flowable="http://flowable.org/bpmn"
              targetNamespace="http://flowable.org/processes">
 
-    <process id="taskApprovalProcessR1" name="Task Approval Process" isExecutable="true">
+    <process id="taskApprovalProcessR1" name="Task Approval Process R1" isExecutable="true">
         <startEvent id="startEvent" name="Start">
         </startEvent>
 

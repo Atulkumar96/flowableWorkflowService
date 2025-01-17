@@ -48,7 +48,7 @@ public class WorkflowController {
 
     static {
         //for recordType r1
-        PROCESS_MATRIX_MAP.put("r1","task-approval-process.bpmn20-r1.xml");
+        PROCESS_MATRIX_MAP.put("r1","taskApprovalProcessR1");
     }
 
     /**
