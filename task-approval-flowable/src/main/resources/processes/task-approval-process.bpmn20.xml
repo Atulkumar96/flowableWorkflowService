@@ -20,13 +20,14 @@
 
         <sequenceFlow id="flow2a" sourceRef="validateDraftState" targetRef="updateStateToReadyForReview">
             <conditionExpression xsi:type="tFormalExpression">
-                ${workflowState == 'DOCUMENT_READY_FOR_REVIEW' &amp;&amp; state == 'DRAFTED'}
+                <!--${workflowState == 'DOCUMENT_READY_FOR_REVIEW' &amp;&amp; state == 'DRAFTED'}-->
+                ${workflowState == 'DOCUMENT_READY_FOR_REVIEW'}
             </conditionExpression>
         </sequenceFlow>
 
         <sequenceFlow id="flow2b" sourceRef="validateDraftState" targetRef="handleDraftError">
             <conditionExpression xsi:type="tFormalExpression">
-                ${workflowState != 'DOCUMENT_READY_FOR_REVIEW' || state != 'DRAFTED'}
+                ${workflowState != 'DOCUMENT_READY_FOR_REVIEW'}
             </conditionExpression>
         </sequenceFlow>
 
@@ -56,13 +57,13 @@
 
         <sequenceFlow id="flow5a" sourceRef="validateReviewState" targetRef="reviewDecision">
             <conditionExpression xsi:type="tFormalExpression">
-                ${(workflowState == 'REVIEW_ACCEPTED' || workflowState == 'REVIEW_REJECTED') &amp;&amp; state == 'DRAFTED'}
+                ${(workflowState == 'REVIEW_ACCEPTED' || workflowState == 'REVIEW_REJECTED')}
             </conditionExpression>
         </sequenceFlow>
 
         <sequenceFlow id="flow5b" sourceRef="validateReviewState" targetRef="handleReviewError">
             <conditionExpression xsi:type="tFormalExpression">
-                ${!(workflowState == 'REVIEW_ACCEPTED' || workflowState == 'REVIEW_REJECTED') || state != 'DRAFTED'}
+                ${!(workflowState == 'REVIEW_ACCEPTED' || workflowState == 'REVIEW_REJECTED')}
             </conditionExpression>
         </sequenceFlow>
 
@@ -112,13 +113,13 @@
 
         <sequenceFlow id="flow12a" sourceRef="validateApprovalState" targetRef="approvalDecision">
             <conditionExpression xsi:type="tFormalExpression">
-                ${(workflowState == 'APPROVAL_ACCEPTED' || workflowState == 'APPROVAL_REJECTED') &amp;&amp; state == 'REVIEWED'}
+                ${(workflowState == 'APPROVAL_ACCEPTED' || workflowState == 'APPROVAL_REJECTED')}
             </conditionExpression>
         </sequenceFlow>
 
         <sequenceFlow id="flow12b" sourceRef="validateApprovalState" targetRef="handleApprovalError">
             <conditionExpression xsi:type="tFormalExpression">
-                ${!(workflowState == 'APPROVAL_ACCEPTED' || workflowState == 'APPROVAL_REJECTED') || state != 'REVIEWED'}
+                ${!(workflowState == 'APPROVAL_ACCEPTED' || workflowState == 'APPROVAL_REJECTED')}
             </conditionExpression>
         </sequenceFlow>
 

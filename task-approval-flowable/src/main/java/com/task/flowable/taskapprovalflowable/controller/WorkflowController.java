@@ -210,13 +210,8 @@ public class WorkflowController {
         String businessKey = String.valueOf(recordId);
 
         try {
-            // Check active process instances
+            // Check active process instances: must be zero
             List<ProcessInstance> activeProcesses = runtimeService.createProcessInstanceQuery()
-                .processInstanceBusinessKey(businessKey)
-                .list();
-
-            // Check historic process instances
-            List<HistoricProcessInstance> historicProcesses = historyService.createHistoricProcessInstanceQuery()
                 .processInstanceBusinessKey(businessKey)
                 .list();
 
@@ -232,58 +227,30 @@ public class WorkflowController {
                     ". Please contact system administrator. Reference: " + processIds);
             }
 
-            // Handle multiple historic processes (data corruption scenario)
-            // This is a business rule to prevent reprocessing of the same record
-            /*
-            if (historicProcesses.size() > 1) {
-                String processIds = historicProcesses.stream()
-                    .map(HistoricProcessInstance::getId)
-                    .collect(Collectors.joining(", "));
-
-                logger.error("Data corruption detected: Multiple historic processes found for business key {}: {}",
-                    businessKey, processIds);
-                throw new DataCorruptionException("Multiple historic processes found for record ID: " + recordId +
-                    ". Please contact system administrator. Reference: " + processIds);
-            }
-
-             */
-
-            // Check for single active process
+            // Handle for single active process
             if (!activeProcesses.isEmpty()) {
                 ProcessInstance existingProcess = activeProcesses.get(0);
                 throw new DuplicateRecordException("Duplicate record with ID: " + recordId +
                     " is already associated to active process " + existingProcess.getProcessInstanceId());
             }
 
-            // Check for single historic process - prevent reprocessing with same record ID
-            // This is a business rule to prevent reprocessing of the same record
-            /*
-            if (!historicProcesses.isEmpty()) {
-                HistoricProcessInstance historicProcess = historicProcesses.get(0);
-                throw new DuplicateRecordException("Record with ID: " + recordId +
-                    " was previously processed in historic process " + historicProcess.getId());
-            }
-            */
-
             // Proceed with process creation if no duplicates found
             Map<String, Object> variables = new HashMap<>();
             variables.put("recordId", recordId);
             variables.put("workflowState", WorkflowDTO.WorkflowState.DRAFTED);
             variables.put("state", WorkflowDTO.State.DRAFTED);
-            // if workflowDTO is not null & workflowDTO has recordType, set it as a process variable
+
+            // Default process definition key
             String processDefinitionKey = "taskApprovalProcess";
+
+            // If workflowDTO is not null & workflowDTO has recordType, set it as a process variable
+            // According to the recordType, set the processDefinitionKey
             if (workflowDTO != null && workflowDTO.getRecordType() != null) {
                 variables.put("recordType", workflowDTO.getRecordType());
-                processDefinitionKey = PROCESS_MATRIX_MAP.getOrDefault(workflowDTO.getRecordType(),"taskApprovalProcess");
+                processDefinitionKey = PROCESS_MATRIX_MAP.getOrDefault(workflowDTO.getRecordType(), processDefinitionKey);
             }
 
-
-            //For now, we are using a single process definition key
-            //TODO: On the basis of recordType, set the processDefinitionKey
-            // fetch process definition from workflow matrix based on the record type
-            // ((e.g. nerc_policy_procedure_rsaw - review_and_approval_cycle))
-
-
+            // Start the process instance
             ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(
                 processDefinitionKey,
                 businessKey,

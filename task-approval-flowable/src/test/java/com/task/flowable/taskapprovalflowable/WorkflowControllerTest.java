@@ -44,7 +44,6 @@ class WorkflowControllerTest {
         // 2. Update the record state to DOCUMENT_READY_FOR_REVIEW
         WorkflowDTO workflowDTO = WorkflowDTO.builder()
                 .workflowState(WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW)
-                .state(WorkflowDTO.State.DRAFTED)
                 .build();
 
         responseStatus = workflowController.startOrUpdateRecordState(8982L,workflowDTO);
@@ -62,7 +61,6 @@ class WorkflowControllerTest {
         // 3. Update the record state to REVIEW_ACCEPTED
         workflowDTO = WorkflowDTO.builder()
                 .workflowState(WorkflowDTO.WorkflowState.REVIEW_ACCEPTED)
-                .state(WorkflowDTO.State.DRAFTED)
                 .build();
 
         responseStatus = workflowController.startOrUpdateRecordState(8982L,workflowDTO);
@@ -80,7 +78,6 @@ class WorkflowControllerTest {
         // 4. Update the record state to APPROVAL_ACCEPTED
         workflowDTO = WorkflowDTO.builder()
                 .workflowState(WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED)
-                .state(WorkflowDTO.State.REVIEWED)
                 .build();
 
         responseStatus = workflowController.startOrUpdateRecordState(8982L,workflowDTO);
@@ -112,7 +109,6 @@ class WorkflowControllerTest {
 
         WorkflowDTO workflowDTO = WorkflowDTO.builder()
                 .workflowState(WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW)
-                .state(WorkflowDTO.State.DRAFTED)
                 .build();
 
         responseStatus = workflowController.startOrUpdateRecordState(recordId,workflowDTO);
@@ -125,7 +121,6 @@ class WorkflowControllerTest {
 
         workflowDTO = WorkflowDTO.builder()
                 .workflowState(WorkflowDTO.WorkflowState.REVIEW_REJECTED)
-                .state(WorkflowDTO.State.DRAFTED)
                 .build();
 
         responseStatus = workflowController.startOrUpdateRecordState(recordId,workflowDTO);
@@ -151,7 +146,6 @@ class WorkflowControllerTest {
 
         WorkflowDTO workflowDTO = WorkflowDTO.builder()
             .workflowState(WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW)
-            .state(WorkflowDTO.State.DRAFTED)
             .build();
 
         workflowController.startOrUpdateRecordState(recordId,workflowDTO);
@@ -163,7 +157,6 @@ class WorkflowControllerTest {
 
         workflowDTO = WorkflowDTO.builder()
             .workflowState(WorkflowDTO.WorkflowState.REVIEW_ACCEPTED)
-            .state(WorkflowDTO.State.DRAFTED)
             .build();
 
         workflowController.startOrUpdateRecordState(recordId,workflowDTO);
@@ -176,7 +169,6 @@ class WorkflowControllerTest {
 
         workflowDTO = WorkflowDTO.builder()
             .workflowState(WorkflowDTO.WorkflowState.APPROVAL_REJECTED)
-            .state(WorkflowDTO.State.REVIEWED)
             .build();
 
         workflowController.startOrUpdateRecordState(recordId,workflowDTO);
@@ -226,7 +218,6 @@ class WorkflowControllerTest {
             // Call your method that should throw the exception
             WorkflowDTO workflowDTO = WorkflowDTO.builder()
                     .workflowState(WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW)
-                    .state(WorkflowDTO.State.DRAFTED)
                     .build();
 
             workflowController.startOrUpdateRecordState(unknownRecordId,workflowDTO);
@@ -252,8 +243,7 @@ class WorkflowControllerTest {
 
             // Call your method that should throw the exception
             WorkflowDTO workflowDTO = WorkflowDTO.builder()
-                .workflowState(WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW)
-                .state(WorkflowDTO.State.SIGNED)
+                .workflowState(WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED)
                 .build();
 
             workflowController.startOrUpdateRecordState(recordId,workflowDTO);

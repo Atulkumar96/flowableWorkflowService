@@ -41,6 +41,6 @@ public class StateUpdateDelegate implements JavaDelegate {
             return "DRAFTED";
         }
         // Return current state if no change is needed
-        return currentState;
+        return "DRAFTED";
     }
 }
