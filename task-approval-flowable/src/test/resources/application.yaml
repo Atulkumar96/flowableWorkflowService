@@ -16,3 +16,5 @@ spring:
     console:
       enabled: true
       path: /h2-console
+
+default-process-definition-key: review_and_approval_cycle

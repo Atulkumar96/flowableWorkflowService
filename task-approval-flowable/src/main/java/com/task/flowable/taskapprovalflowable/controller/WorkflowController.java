@@ -52,7 +52,7 @@ public class WorkflowController {
 
     static {
         //for recordType r1
-        PROCESS_MATRIX_MAP.put("r1","taskApprovalProcessR1");
+        PROCESS_MATRIX_MAP.put("r1","review_and_approval_cycle_R1");
     }
 
     /**
@@ -126,27 +126,6 @@ public class WorkflowController {
                 //check if variables contains state and is not equal to null
                 if(variables.containsKey("state") && variables.get("state") != null){
                     response.put("state", variables.get("state"));
-                }
-                else{
-                    // if state is null or incorrect, set the state based on the workflowState
-                    if(variables.get("workflowState") == WorkflowDTO.WorkflowState.DRAFTED){
-                        response.put("state", WorkflowDTO.State.DRAFTED);
-                    }
-                    else if(variables.get("workflowState") == WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW){
-                        response.put("state", WorkflowDTO.State.DRAFTED);
-                    }
-                    else if(variables.get("workflowState") == WorkflowDTO.WorkflowState.REVIEW_REJECTED){
-                        response.put("state", WorkflowDTO.State.DRAFTED);
-                    }
-                    else if(variables.get("workflowState") == WorkflowDTO.WorkflowState.APPROVAL_REJECTED){
-                        response.put("state", WorkflowDTO.State.DRAFTED);
-                    }
-                    else if(variables.get("workflowState") == WorkflowDTO.WorkflowState.REVIEW_ACCEPTED){
-                        response.put("state", WorkflowDTO.State.REVIEWED);
-                    }
-                    else if(variables.get("workflowState") == WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED){
-                        response.put("state", WorkflowDTO.State.SIGNED);
-                    }
                 }
 
                 return ResponseEntity.ok(response);
@@ -251,7 +230,7 @@ public class WorkflowController {
             // According to the recordType, set the processDefinitionKey
             if (workflowDTO != null && workflowDTO.getRecordType() != null) {
                 variables.put("recordType", workflowDTO.getRecordType());
-                processDefinitionKey = PROCESS_MATRIX_MAP.getOrDefault(workflowDTO.getRecordType(), processDefinitionKey);
+                processDefinitionKey = PROCESS_MATRIX_MAP.getOrDefault(workflowDTO.getRecordType(), defaultProcessDefinitionKey);
             }
 
             // Start the process instance

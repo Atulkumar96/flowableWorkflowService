@@ -77,6 +77,7 @@
         </dependency>
 
         <!-- H2 Database for In-Memory DB -->
+        <!-- For Our Test Cases -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
