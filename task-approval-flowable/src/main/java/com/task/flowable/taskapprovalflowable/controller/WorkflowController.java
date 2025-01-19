@@ -49,6 +49,11 @@ public class WorkflowController {
     private String defaultProcessDefinitionKey;
 
     private final static HashMap<String,String> PROCESS_MATRIX_MAP = new HashMap<>();
+    private final static String KEY_STATE = "state";
+    private final static String KEY_WORKFLOW_STATE = "workflowState";
+    private final static String KEY_RECORD_ID = "recordId";
+    private final static String KEY_RECORD_TYPE = "recordType";
+    private final static String KEY_PROCESS_INSTANCE_ID = "processInstanceId";
 
     static {
         //for recordType r1
@@ -80,7 +85,7 @@ public class WorkflowController {
 
         if (workflowDTO == null || isEmpty(workflowDTO) || ((workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.DRAFTED) && !(workflowDTO.getRecordType() == null))) {
             Map<String, Object> response = startProcess(recordId, workflowDTO);
-            logger.info("Process started with process id {} and record id {}", response.get("processInstanceId"), response.get("recordId"));
+            logger.info("Process started with process id {} and record id {}", response.get(KEY_PROCESS_INSTANCE_ID), response.get(KEY_RECORD_ID));
             return ResponseEntity.status(HttpStatus.CREATED).build();
         }
 
@@ -119,13 +124,13 @@ public class WorkflowController {
                 // Get process variables
                 Map<String, Object> variables = runtimeService.getVariables(activeProcess.getId());
 
-                if (variables.containsKey("workflowState")) {
-                    response.put("workflowState", variables.get("workflowState"));
+                if (variables.containsKey(KEY_WORKFLOW_STATE)) {
+                    response.put(KEY_WORKFLOW_STATE, variables.get(KEY_WORKFLOW_STATE));
                 }
 
                 //check if variables contains state and is not equal to null
-                if(variables.containsKey("state") && variables.get("state") != null){
-                    response.put("state", variables.get("state"));
+                if(variables.containsKey(KEY_STATE) && variables.get(KEY_STATE) != null){
+                    response.put(KEY_STATE, variables.get(KEY_STATE));
                 }
 
                 return ResponseEntity.ok(response);
@@ -165,11 +170,11 @@ public class WorkflowController {
                         HistoricVariableInstance::getValue
                     ));
 
-                if (variables.containsKey("state")) {
-                    response.put("state", variables.get("state"));
+                if (variables.containsKey(KEY_STATE)) {
+                    response.put(KEY_STATE, variables.get(KEY_STATE));
                 }
-                if (variables.containsKey("workflowState")) {
-                    response.put("workflowState", variables.get("workflowState"));
+                if (variables.containsKey(KEY_WORKFLOW_STATE)) {
+                    response.put(KEY_WORKFLOW_STATE, variables.get(KEY_WORKFLOW_STATE));
                 }
 
                 return ResponseEntity.ok(response);
@@ -219,9 +224,9 @@ public class WorkflowController {
 
             // Proceed with process creation if no duplicates found
             Map<String, Object> variables = new HashMap<>();
-            variables.put("recordId", recordId);
-            variables.put("workflowState", WorkflowDTO.WorkflowState.DRAFTED);
-            variables.put("state", WorkflowDTO.State.DRAFTED);
+            variables.put(KEY_RECORD_ID, recordId);
+            variables.put(KEY_WORKFLOW_STATE, WorkflowDTO.WorkflowState.DRAFTED);
+            variables.put(KEY_STATE, WorkflowDTO.State.DRAFTED);
 
             // Default process definition key
             String processDefinitionKey = defaultProcessDefinitionKey;
@@ -229,7 +234,7 @@ public class WorkflowController {
             // If workflowDTO is not null & workflowDTO has recordType, set it as a process variable
             // According to the recordType, set the processDefinitionKey
             if (workflowDTO != null && workflowDTO.getRecordType() != null) {
-                variables.put("recordType", workflowDTO.getRecordType());
+                variables.put(KEY_RECORD_TYPE, workflowDTO.getRecordType());
                 processDefinitionKey = PROCESS_MATRIX_MAP.getOrDefault(workflowDTO.getRecordType(), defaultProcessDefinitionKey);
             }
 
@@ -241,8 +246,8 @@ public class WorkflowController {
             );
 
             Map<String, Object> response = new HashMap<>();
-            response.put("processInstanceId", processInstance.getId());
-            response.put("recordId", recordId);
+            response.put(KEY_PROCESS_INSTANCE_ID, processInstance.getId());
+            response.put(KEY_RECORD_ID, recordId);
 
             return response;
 
@@ -280,21 +285,15 @@ public class WorkflowController {
 
         // Prepare variables for the workflow
         Map<String, Object> variables = new HashMap<>();
-        variables.put("workflowState", workflowDTO.getWorkflowState());
-        variables.put("recordId", recordId);
+        variables.put(KEY_WORKFLOW_STATE, workflowDTO.getWorkflowState());
+        variables.put(KEY_RECORD_ID, recordId);
         if (workflowDTO.getRecordType() != null) {
-            variables.put("recordType", workflowDTO.getRecordType());
+            variables.put(KEY_RECORD_TYPE, workflowDTO.getRecordType());
         }
-        variables.put("approved", isApproved(workflowDTO.getWorkflowState()));
 
         // Complete the current task with variables
         taskService.complete(currentTask.getId(), variables);
 
-    }
-
-    private boolean isApproved(WorkflowDTO.WorkflowState workflowState) {
-        return workflowState == WorkflowDTO.WorkflowState.REVIEW_ACCEPTED ||
-            workflowState == WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED;
     }
 
 }
