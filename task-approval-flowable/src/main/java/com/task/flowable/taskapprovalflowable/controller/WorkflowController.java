@@ -48,23 +48,26 @@ public class WorkflowController {
     @Value("${default-process-definition-key}")
     private String defaultProcessDefinitionKey;
 
-    private final static HashMap<String,String> PROCESS_MATRIX_MAP = new HashMap<>();
-    private final static String KEY_STATE = "state";
-    private final static String KEY_WORKFLOW_STATE = "workflowState";
+    private final static HashMap<String,String> WORKFLOW_MATRIX = new HashMap<>();
     private final static String KEY_RECORD_ID = "recordId";
+    private final static String KEY_WORKFLOW_STATE = "workflowState";
     private final static String KEY_RECORD_TYPE = "recordType";
+    private final static String KEY_REVIEW_RECORD_TYPE = "reviewRecordtype";
+    private final static String KEY_STANDARD = "standard";
+    private final static String KEY_STATE = "state";
+    private final static String KEY_CLIENT_ID = "clientId";
     private final static String KEY_PROCESS_INSTANCE_ID = "processInstanceId";
 
     static {
         //for recordType r1
-        PROCESS_MATRIX_MAP.put("r1","review_and_approval_cycle_R1");
+        WORKFLOW_MATRIX.put("r1","review_and_approval_cycle_R1");
     }
 
     /**
      * Start or update the state of a record
 
      * @param recordId Long
-     * @param workflowDTO WorkflowDTO
+     * @param workflowDTO WorkflowDTO: workflowState, recordType, reviewRecordtype, standard, state, clientId
      * @return ResponseEntity<Map<String, Object>>
      *     * @throws RecordNotFoundException
      *     * @throws DuplicateRecordException
@@ -78,24 +81,31 @@ public class WorkflowController {
         @PathVariable Long recordId,
         @RequestBody(required = false) WorkflowDTO workflowDTO) {
 
-        /**
-         * To start a new process with a record
-         * If the workflowDTO is null or empty, or, the workflow state is DRAFTED and recordType is not null
-         */
+        // When starting a new process, mandatory fields must be provided.
+        if (workflowDTO == null) {
+            logger.error("Workflow body/details are required to start the workflow for provided RecordId: {}", recordId);
+            throw new InvalidStatusException("Workflow details are required to start the workflow.");
+        }
 
-        if (workflowDTO == null || isEmpty(workflowDTO) || ((workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.DRAFTED) && !(workflowDTO.getRecordType() == null))) {
+        // When starting a new process in DRAFTED state, mandatory fields must be provided.
+        if (workflowDTO.getWorkflowState() == WorkflowDTO.WorkflowState.DRAFTED) {
+            // Validate that mandatory fields are not null or empty
+            if (isNullOrEmpty(workflowDTO.getRecordType()) ||
+                    isNullOrEmpty(workflowDTO.getReviewRecordtype()) ||
+                    isNullOrEmpty(workflowDTO.getStandard()) ||
+                    isNullOrEmpty(workflowDTO.getClientId())) {
+                logger.error("Mandatory fields recordType, reviewRecordtype, standard, and clientId must not be null or empty for provided RecordId: {}", recordId);
+                throw new InvalidStatusException("Mandatory fields recordType, reviewRecordtype, standard, and clientId must not be null or empty.");
+            }
             Map<String, Object> response = startProcess(recordId, workflowDTO);
             logger.info("Process started with process id {} and record id {}", response.get(KEY_PROCESS_INSTANCE_ID), response.get(KEY_RECORD_ID));
             return ResponseEntity.status(HttpStatus.CREATED).build();
         }
-
-        /**
-         * To update the task status
-         * If the workflowDTO is not null and the workflow state is not DRAFTED
-         */
-
-        updateWorkflowState(recordId, workflowDTO);
-        return ResponseEntity.ok().build();
+        else {
+            // For non-DRAFTED states, we update the workflow state
+            updateWorkflowState(recordId, workflowDTO);
+            return ResponseEntity.ok().build();
+        }
     }
 
     /**
@@ -228,14 +238,27 @@ public class WorkflowController {
             variables.put(KEY_WORKFLOW_STATE, WorkflowDTO.WorkflowState.DRAFTED);
             variables.put(KEY_STATE, WorkflowDTO.State.DRAFTED);
 
+            if (workflowDTO != null && workflowDTO.getReviewRecordtype() != null) {
+                variables.put(KEY_REVIEW_RECORD_TYPE, workflowDTO.getReviewRecordtype());
+            }
+
+            if (workflowDTO != null && workflowDTO.getStandard() != null) {
+                variables.put(KEY_STANDARD, workflowDTO.getStandard());
+            }
+
+            if (workflowDTO != null && workflowDTO.getClientId() != null) {
+                variables.put(KEY_CLIENT_ID, workflowDTO.getClientId());
+            }
+
             // Default process definition key
             String processDefinitionKey = defaultProcessDefinitionKey;
 
             // If workflowDTO is not null & workflowDTO has recordType, set it as a process variable
             // According to the recordType, set the processDefinitionKey
+            // fetch process definition from workflow matrix based on the record type ((e.g. nerc_policy_procedure_rsaw-> review_and_approval_cycle))
             if (workflowDTO != null && workflowDTO.getRecordType() != null) {
                 variables.put(KEY_RECORD_TYPE, workflowDTO.getRecordType());
-                processDefinitionKey = PROCESS_MATRIX_MAP.getOrDefault(workflowDTO.getRecordType(), defaultProcessDefinitionKey);
+                processDefinitionKey = WORKFLOW_MATRIX.getOrDefault(workflowDTO.getRecordType(), defaultProcessDefinitionKey);
             }
 
             // Start the process instance
@@ -291,9 +314,26 @@ public class WorkflowController {
             variables.put(KEY_RECORD_TYPE, workflowDTO.getRecordType());
         }
 
+        if (workflowDTO.getReviewRecordtype() != null) {
+            variables.put(KEY_REVIEW_RECORD_TYPE, workflowDTO.getReviewRecordtype());
+        }
+
+        if (workflowDTO.getStandard() != null) {
+            variables.put(KEY_STANDARD, workflowDTO.getStandard());
+        }
+
+        if (workflowDTO.getClientId() != null) {
+            variables.put(KEY_CLIENT_ID, workflowDTO.getClientId());
+        }
+
         // Complete the current task with variables
         taskService.complete(currentTask.getId(), variables);
 
+    }
+
+    // Helper method to check if a string is null or empty after trimming.
+    private boolean isNullOrEmpty(String str) {
+        return (str == null || str.trim().isEmpty());
     }
 
 }

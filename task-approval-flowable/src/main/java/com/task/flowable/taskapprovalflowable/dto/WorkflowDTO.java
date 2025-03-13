@@ -22,12 +22,14 @@ public class WorkflowDTO {
 
     public enum State {
         DRAFTED,
-        SIGNED,
-        REVIEWED
+        REVIEWED,
+        SIGNED
     }
 
     private WorkflowState workflowState;
-    private String recordType;
-    private String standard;
+    private String recordType; // i.e. nerc_policy_procedure
+    private String reviewRecordtype; // i.e. nerc_policy_procedure_review
+    private String standard; // i.e. BAL-001-0
     private State state;
+    private String clientId; // i.e. rhg
 }
