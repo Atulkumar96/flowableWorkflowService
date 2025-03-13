@@ -3,8 +3,8 @@ spring:
     name: task-approval-flowable
   datasource:
     url: jdbc:postgresql://localhost:5432/task_approval_flowable
-    username: postgres
-    password: postgres
+    username: ${username}
+    password: ${password}
     driver-class-name: org.postgresql.Driver
     jpa:
       hibernate:
@@ -16,3 +16,5 @@ spring:
           format_sql: true
     cache:
       type: simple
+
+default-process-definition-key: review_and_approval_cycle

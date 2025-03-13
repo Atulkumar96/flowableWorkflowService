@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+//TODO : Can be deleted - as all logics moved to xml, Just using for Logging
 @Component
 public class StateUpdateDelegate implements JavaDelegate {
 
@@ -14,10 +15,16 @@ public class StateUpdateDelegate implements JavaDelegate {
     @Override
     public void execute(DelegateExecution execution) {
 
-        String state = String.valueOf(execution.getVariable("state"));
+        // Retrieve the variables from the execution context
+        String currentState = String.valueOf(execution.getVariable("state"));
         Long recordId = (Long) execution.getVariable("recordId");
+        String workflowState = String.valueOf(execution.getVariable("workflowState")); // Assuming 'workflowState' is set
 
-        logger.info("Updating record state to {} for record {}", state, recordId);
+        // Log the current state and record ID for debugging
+        logger.info("Updating record state from '{}' to '{}' for record {}", currentState, workflowState, recordId);
+
+
 
     }
+
 }
