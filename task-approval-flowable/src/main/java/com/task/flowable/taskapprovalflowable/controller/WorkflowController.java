@@ -1,5 +1,7 @@
 package com.task.flowable.taskapprovalflowable.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.task.flowable.taskapprovalflowable.dto.WorkflowDTO;
 import com.task.flowable.taskapprovalflowable.exception.DataCorruptionException;
 import com.task.flowable.taskapprovalflowable.exception.DuplicateRecordException;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -232,11 +235,13 @@ public class WorkflowController {
                     " is already associated to active process " + existingProcess.getProcessInstanceId());
             }
 
-            // Proceed with process creation if no duplicates found
+            // Proceed with process creation if no duplicate active process found
+            // Set process variables
             Map<String, Object> variables = new HashMap<>();
             variables.put(KEY_RECORD_ID, recordId);
             variables.put(KEY_WORKFLOW_STATE, WorkflowDTO.WorkflowState.DRAFTED);
             variables.put(KEY_STATE, WorkflowDTO.State.DRAFTED);
+            variables.put(KEY_RECORD_TYPE, workflowDTO.getRecordType());
 
             if (workflowDTO != null && workflowDTO.getReviewRecordtype() != null) {
                 variables.put(KEY_REVIEW_RECORD_TYPE, workflowDTO.getReviewRecordtype());
@@ -250,14 +255,15 @@ public class WorkflowController {
                 variables.put(KEY_CLIENT_ID, workflowDTO.getClientId());
             }
 
+            // NEW: Extract notification details and populate process variables.
+            addNotificationVariables(variables, workflowDTO);
+
             // Default process definition key
             String processDefinitionKey = defaultProcessDefinitionKey;
 
-            // If workflowDTO is not null & workflowDTO has recordType, set it as a process variable
-            // According to the recordType, set the processDefinitionKey
+            // If workflowDTO has recordType then fetch the processDefinitionKey from the matrix based on the recordType
             // fetch process definition from workflow matrix based on the record type ((e.g. nerc_policy_procedure_rsaw-> review_and_approval_cycle))
-            if (workflowDTO != null && workflowDTO.getRecordType() != null) {
-                variables.put(KEY_RECORD_TYPE, workflowDTO.getRecordType());
+            if (!isNullOrEmpty(workflowDTO.getRecordType())) {
                 processDefinitionKey = WORKFLOW_MATRIX.getOrDefault(workflowDTO.getRecordType(), defaultProcessDefinitionKey);
             }
 
@@ -336,4 +342,138 @@ public class WorkflowController {
         return (str == null || str.trim().isEmpty());
     }
 
+    /**
+     * Stub method that simulates calling the external POST endpoint
+     * https://sp3crmtest.claritysystemsinc.com/records and returning the JSON response.
+     */
+    private String fetchNotificationResponse(String clientId) {
+        // In a real implementation we might use RestTemplate or WebClient or jar to fetch the response.
+        // For now, we return the stubbed JSON as provided.
+        return "{\n" +
+                "    \"totalCount\": 1,\n" +
+                "    \"records\": [\n" +
+                "        {\n" +
+                "            \"recordId\": \"a5877f:JeR87J\",\n" +
+                "            \"recordType\": \"nerc_emailsettings\",\n" +
+                "            \"properties\": [\n" +
+                "                {\n" +
+                "                    \"name\": \"clientId\",\n" +
+                "                    \"type\": \"STRING\",\n" +
+                "                    \"value\": \"rhg\"\n" +
+                "                },\n" +
+                "                {\n" +
+                "                    \"name\": \"createdDate\",\n" +
+                "                    \"type\": \"NUMBER\",\n" +
+                "                    \"value\": 1741780619651\n" +
+                "                },\n" +
+                "                {\n" +
+                "                    \"name\": \"createdBy\",\n" +
+                "                    \"type\": \"STRING\",\n" +
+                "                    \"value\": \" atul  atul\"\n" +
+                "                },\n" +
+                "                {\n" +
+                "                    \"name\": \"txnState\",\n" +
+                "                    \"type\": \"STRING\",\n" +
+                "                    \"value\": \"Committed\"\n" +
+                "                },\n" +
+                "                {\n" +
+                "                    \"name\": \"matrix\",\n" +
+                "                    \"type\": \"ARRAY\",\n" +
+                "                    \"value\": [\n" +
+                "                        {\n" +
+                "                            \"standard\": \"BAL-001-2\",\n" +
+                "                            \"emailReceipentsForReview\": [\n" +
+                "                                {\n" +
+                "                                    \"reviewer\": \"baskar@claritysystemsinc.com\"\n" +
+                "                                }\n" +
+                "                            ],\n" +
+                "                            \"emailReceipentsForApprove\": [\n" +
+                "                                {\n" +
+                "                                    \"approver\": \"lsowner@gmail.com\"\n" +
+                "                                }\n" +
+                "                            ],\n" +
+                "                            \"emailReceipentsForEscalation1\": [\n" +
+                "                                {\n" +
+                "                                    \"escalation\": \"\"\n" +
+                "                                }\n" +
+                "                            ],\n" +
+                "                            \"emailReceipentsForEscalation2\": [\n" +
+                "                                {\n" +
+                "                                    \"escalation\": \"\"\n" +
+                "                                }\n" +
+                "                            ]\n" +
+                "                        }\n" +
+                "                    ]\n" +
+                "                }\n" +
+                "            ]\n" +
+                "        }\n" +
+                "    ]\n" +
+                "}";
+    }
+
+    /**
+     * Helper method to fetch and parse notification details.
+     * It fetches the notification JSON (stubbed), looks for a record with recordType "nerc_emailsettings"
+     * matching the given clientId, then extracts reviewer and approver based on the provided standard.
+     * The extracted values are added to the provided variables map.
+     */
+    private void addNotificationVariables(Map<String, Object> variables, WorkflowDTO workflowDTO) throws IOException {
+        String clientId = workflowDTO.getClientId();
+        String standard = workflowDTO.getStandard();
+        String jsonResponse = fetchNotificationResponse(clientId);
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(jsonResponse);
+
+        if (root.has("records")) {
+            for (JsonNode record : root.get("records")) {
+                if (record.has("recordType") && "nerc_emailsettings".equals(record.get("recordType").asText())) {
+                    // Check if the record's clientId matches the provided clientId.
+                    boolean clientIdMatch = false;
+                    JsonNode properties = record.get("properties");
+                    for (JsonNode property : properties) {
+                        if ("clientId".equals(property.get("name").asText()) &&
+                                clientId.equals(property.get("value").asText().trim())) {
+                            clientIdMatch = true;
+                            break;
+                        }
+                    }
+
+                    if (clientIdMatch) {
+                        // Find the 'matrix' property in the record and extract reviewer/approver.
+                        for (JsonNode property : properties) {
+                            if ("matrix".equals(property.get("name").asText())) {
+                                JsonNode matrixArray = property.get("value");
+                                if (matrixArray.isArray()) {
+                                    for (JsonNode matrixItem : matrixArray) {
+                                        if (matrixItem.has("standard") && standard.equals(matrixItem.get("standard").asText())) {
+                                            String reviewer = "";
+                                            String approver = "";
+
+                                            JsonNode reviewers = matrixItem.get("emailReceipentsForReview");
+                                            if (reviewers != null && reviewers.isArray() && reviewers.size() > 0) {
+                                                reviewer = reviewers.get(0).get("reviewer").asText();
+                                            }
+
+                                            JsonNode approvers = matrixItem.get("emailReceipentsForApprove");
+                                            if (approvers != null && approvers.isArray() && approvers.size() > 0) {
+                                                approver = approvers.get(0).get("approver").asText();
+                                            }
+
+                                            variables.put("reviewer", reviewer);
+                                            variables.put("approver", approver);
+                                            variables.put("documentOwner", "atul@claritysystemsinc.com");
+                                            //variables.put("notificationRecordType", "nerc_emailsettings");
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+    }
 }

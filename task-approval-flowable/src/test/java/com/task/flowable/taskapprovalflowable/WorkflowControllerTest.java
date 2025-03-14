@@ -41,7 +41,7 @@ class WorkflowControllerTest {
         assertEquals(String.valueOf("DRAFTED"), String.valueOf(response.getBody().get("workflowState")), "The workflow state must be DRAFTED");
         assertEquals(String.valueOf("DRAFTED"), String.valueOf(response.getBody().get("state")), "The document state must be DRAFTED");
 
-        // 2. Update the record state to DOCUMENT_READY_FOR_REVIEW
+        // 2. Update the record state to documentReadyForReview
         WorkflowDTO workflowDTO = WorkflowDTO.builder()
                 .workflowState(WorkflowDTO.WorkflowState.DOCUMENT_READY_FOR_REVIEW)
                 .build();
@@ -54,11 +54,11 @@ class WorkflowControllerTest {
         // Get the current state of the record
         response = workflowController.getRecordState(8982L);
 
-        // The expected workflow state and the document state must be DOCUMENT_READY_FOR_REVIEW and DRAFTED
-        assertEquals(String.valueOf("DOCUMENT_READY_FOR_REVIEW"), String.valueOf(response.getBody().get("workflowState")), "The workflow state must be DOCUMENT_READY_FOR_REVIEW");
+        // The expected workflow state and the document state must be documentReadyForReview and DRAFTED
+        assertEquals(String.valueOf("documentReadyForReview"), String.valueOf(response.getBody().get("workflowState")), "The workflow state must be documentReadyForReview");
         assertEquals(String.valueOf("DRAFTED"), String.valueOf(response.getBody().get("state")), "The document state must be DRAFTED");
 
-        // 3. Update the record state to REVIEW_ACCEPTED
+        // 3. Update the record state to reviewAccepted
         workflowDTO = WorkflowDTO.builder()
                 .workflowState(WorkflowDTO.WorkflowState.REVIEW_ACCEPTED)
                 .build();
@@ -71,11 +71,11 @@ class WorkflowControllerTest {
         // Get the current state of the record
         response = workflowController.getRecordState(8982L);
 
-        // The expected workflow state and the document state must be REVIEW_ACCEPTED and REVIEWED
-        assertEquals(String.valueOf("REVIEW_ACCEPTED"), String.valueOf(response.getBody().get("workflowState")));
+        // The expected workflow state and the document state must be reviewAccepted and REVIEWED
+        assertEquals(String.valueOf("reviewAccepted"), String.valueOf(response.getBody().get("workflowState")));
         assertEquals(String.valueOf("REVIEWED"), String.valueOf(response.getBody().get("state")));
 
-        // 4. Update the record state to APPROVAL_ACCEPTED
+        // 4. Update the record state to approvalAccepted
         workflowDTO = WorkflowDTO.builder()
                 .workflowState(WorkflowDTO.WorkflowState.APPROVAL_ACCEPTED)
                 .build();
@@ -88,12 +88,12 @@ class WorkflowControllerTest {
         // Get the current state of the record
         response = workflowController.getRecordState(8982L);
 
-        // The expected workflow state and the document state must be APPROVAL_ACCEPTED and SIGNED
-        assertEquals(String.valueOf("APPROVAL_ACCEPTED"), String.valueOf(response.getBody().get("workflowState")), "The workflow state must be APPROVAL_ACCEPTED");
+        // The expected workflow state and the document state must be approvalAccepted and SIGNED
+        assertEquals(String.valueOf("approvalAccepted"), String.valueOf(response.getBody().get("workflowState")), "The workflow state must be approvalAccepted");
         assertEquals(String.valueOf("SIGNED"), String.valueOf(response.getBody().get("state")), "The document state must be SIGNED");
     }
 
-    //Negative Test Case 1: After REVIEW_REJECTED - The workflow state should again move to Draft
+    //Negative Test Case 1: After reviewRejected - The workflow state should again move to Draft
     @Test
     @Deployment(resources = { "processes/task-approval-process.bpmn20.xml" })
     void reviewRejectedFlow() {
@@ -116,7 +116,7 @@ class WorkflowControllerTest {
 
         response = workflowController.getRecordState(recordId);
 
-        assertEquals(String.valueOf("DOCUMENT_READY_FOR_REVIEW"), String.valueOf(response.getBody().get("workflowState")), "The workflow state must be DOCUMENT_READY_FOR_REVIEW");
+        assertEquals(String.valueOf("documentReadyForReview"), String.valueOf(response.getBody().get("workflowState")), "The workflow state must be documentReadyForReview");
         assertEquals(String.valueOf("DRAFTED"), String.valueOf(response.getBody().get("state")), "The document state must be DRAFTED");
 
         workflowDTO = WorkflowDTO.builder()
@@ -128,12 +128,12 @@ class WorkflowControllerTest {
 
         response = workflowController.getRecordState(recordId);
 
-        assertEquals(String.valueOf("REVIEW_REJECTED"), String.valueOf(response.getBody().get("workflowState")));
+        assertEquals(String.valueOf("reviewRejected"), String.valueOf(response.getBody().get("workflowState")));
         assertEquals(String.valueOf("DRAFTED"), String.valueOf(response.getBody().get("state")));
 
     }
 
-    //After APPROVAL_REJECTED - The workflow state should again move to Draft
+    //After approvalRejected - The workflow state should again move to Draft
     @Test
     @Deployment(resources = { "processes/task-approval-process.bpmn20.xml" })
     void approvalRejectedFlow() {Long recordId = 8976L;
@@ -163,7 +163,7 @@ class WorkflowControllerTest {
 
         response = workflowController.getRecordState(recordId);
 
-        assertEquals(String.valueOf("REVIEW_ACCEPTED"), String.valueOf(response.getBody().get("workflowState")));
+        assertEquals(String.valueOf("reviewAccepted"), String.valueOf(response.getBody().get("workflowState")));
         assertEquals(String.valueOf("REVIEWED"), String.valueOf(response.getBody().get("state")));
 
 
@@ -175,7 +175,7 @@ class WorkflowControllerTest {
 
         response = workflowController.getRecordState(recordId);
 
-        assertEquals(String.valueOf("APPROVAL_REJECTED"), String.valueOf(response.getBody().get("workflowState")));
+        assertEquals(String.valueOf("approvalRejected"), String.valueOf(response.getBody().get("workflowState")));
         assertEquals(String.valueOf("DRAFTED"), String.valueOf(response.getBody().get("state")));
 
     }
